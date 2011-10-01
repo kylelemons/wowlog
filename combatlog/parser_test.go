@@ -21,7 +21,7 @@ func glob(pattern string) []string {
 
 func TestRealCombatLog(t *testing.T) {
 	for _, file := range realLogs {
-		cl, err := Load(file)
+		cl, err := ReadFile(file)
 		if err != nil {
 			t.Errorf("load(%q): %s", file, err)
 		}
@@ -29,20 +29,21 @@ func TestRealCombatLog(t *testing.T) {
 	}
 }
 
-var countFieldTests = []struct{
+var nextFieldTests = []struct{
 	Source string
-	Count  int
+	Comma  int
 }{
 	{"a", 1},
-	{"a,b", 2},
-	{"a,,b", 3},
-	{`a,"b,c",d`, 3},
+	{"a,b", 1},
+	{",b", 0},
+	{`"b,c",d`, 5},
+	{`"b\",c",d`, 7},
 }
 
-func TestCountFields(t *testing.T) {
-	for _, test := range countFieldTests {
-		if got, want := countFields([]byte(test.Source)), test.Count; got != want {
-			t.Errorf("countFields(%#q) = %d, want %d", test.Source, got, want)
+func TestNextField(t *testing.T) {
+	for _, test := range nextFieldTests {
+		if got, want := nextField([]byte(test.Source)), test.Comma; got != want {
+			t.Errorf("nextField(%#q) = %d, want %d", test.Source, got, want)
 		}
 	}
 }
@@ -58,7 +59,21 @@ func BenchmarkDecode(b *testing.B) {
 			io.WriteString(w, line)
 		}
 	}()
-	if _, err := ReadFrom(r); err != nil {
+	if _, err := Read(r); err != nil {
 		panic(err)
+	}
+}
+
+var benchFile = "CombatLog.Bench.txt"
+
+func BenchmarkReadFile(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		ReadFile(benchFile)
+	}
+}
+
+func BenchmarkLoadAll(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		ReadFile(benchFile)
 	}
 }

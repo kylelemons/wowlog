@@ -1,6 +1,6 @@
 include $(GOROOT)/src/Make.inc
 
-#GC := $(GC) -m
+GC := $(GC) ${GCOPTS}
 
 TARG=wow/combatlog
 GOFILES=\

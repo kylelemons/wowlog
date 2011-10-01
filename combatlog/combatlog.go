@@ -44,7 +44,7 @@ type Shield struct {
 }
 
 type Aura struct {
-	Type   int32
+	Type   string
 	Shield       `combatlog:"optional"`
 }
 
@@ -62,7 +62,7 @@ type Item struct {
 type EnvironmentalDamage struct {
 	Source Unit
 	Dest   Unit
-	Type   int32
+	Type   string
 	Damage
 }
 
@@ -240,9 +240,10 @@ type SpellAuraRefresh struct {
 
 // SPELL_AURA_BROKEN_SPELL
 type SpellAuraBrokenSpell struct {
-	Source Unit
-	Dest   Unit
-	Spell
+	Source  Unit
+	Dest    Unit
+	Broken  Spell
+	Breaker Spell
 	Aura
 }
 
