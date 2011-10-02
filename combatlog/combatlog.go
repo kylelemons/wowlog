@@ -7,10 +7,24 @@ type Unit struct {
 	Null  int32
 }
 
+type Common struct {
+	Source Unit
+	Dest   Unit
+}
+func (c Common) GetSource() Unit {
+	return c.Source
+}
+func (c Common) GetDest() Unit {
+	return c.Dest
+}
+
 type Spell struct {
 	ID     uint64
 	Name   string
 	School int32
+}
+func (s Spell) GetSpell() Spell {
+	return s
 }
 
 type Damage struct {
@@ -24,12 +38,18 @@ type Damage struct {
 	Glancing bool
 	Crushing bool
 }
+func (d Damage) GetDamage() Damage {
+	return d
+}
 
 type Heal struct {
 	Amount   int64
 	Overheal int64
 	Unknown  int64
 	Critical bool
+}
+func (h Heal) GetHeal() Heal {
+	return h
 }
 
 type Miss struct {
@@ -60,108 +80,94 @@ type Item struct {
 
 // ENVIRONMENTAL_DAMAGE
 type EnvironmentalDamage struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Type   string
 	Damage
 }
 
 // SWING_DAMAGE
 type SwingDamage struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Damage
 }
 
 // SWING_MISSED
 type SwingMissed struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Miss
 }
 
 // RANGE_DAMAGE
 type RangeDamage struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 	Damage
 }
 
 // RANGE_MISSED
 type RangeMissed struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 	Miss
 }
 
 // SPELL_CAST_START
 type SpellCastStart struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 }
 
 // SPELL_CAST_SUCCESS
 type SpellCastSuccess struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 }
 
 // SPELL_CAST_FAILED
 type SpellCastFailed struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 	Miss
 }
 
 // SPELL_MISSED
 type SpellMissed struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 	Miss
 }
 
 // SPELL_DAMAGE
 type SpellDamage struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 	Damage
 }
 
 // SPELL_BUILDING_DAMAGE
 type SpellBuildingDamage struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 	Damage
 }
 
 // SPELL_HEAL
 type SpellHeal struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 	Heal
 }
 
 // SPELL_ENERGIZE
 type SpellEnergize struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 	Power
 }
 
 // SPELL_DRAIN
 type SpellDrain struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 	Power
 	Drained int64
@@ -169,8 +175,7 @@ type SpellDrain struct {
 
 // SPELL_LEECH
 type SpellLeech struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 	Power
 	Leeched int64
@@ -178,23 +183,20 @@ type SpellLeech struct {
 
 // SPELL_INSTAKILL		
 type SpellInstakill struct {
-	Killer Unit
-	Victim Unit
+	Common
 	Spell
 }
 
 // SPELL_INTERRUPT
 type SpellInterrupt struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 	Interrupted Spell
 }
 
 // SPELL_DISPEL
 type SpellDispel struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 	Dispelled Spell
 	Aura
@@ -202,38 +204,33 @@ type SpellDispel struct {
 
 // SPELL_EXTRA_ATTACKS
 type SpellExtraAttacks struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 	Amount int64
 }
 
 // SPELL_DURABILITY_DAMAGE
 type SpellDurabilityDamage struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 }
 
 // SPELL_DURABILITY_DAMAGE_ALL
 type SpellDurabilityDamageAll struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 }
 
 // SPELL_AURA_APPLIED
 type SpellAuraApplied struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 	Aura
 }
 
 // SPELL_AURA_REFRESH
 type SpellAuraRefresh struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 	Aura
 }
@@ -249,8 +246,7 @@ type SpellAuraBrokenSpell struct {
 
 // SPELL_AURA_APPLIED_DOSE
 type SpellAuraAppliedDose struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 	Aura
 	Amount int64
@@ -258,16 +254,14 @@ type SpellAuraAppliedDose struct {
 
 // SPELL_AURA_REMOVED
 type SpellAuraRemoved struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 	Aura
 }
 
 // SPELL_AURA_REMOVED_DOSE
 type SpellAuraRemovedDose struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 	Aura
 	Amount int64
@@ -275,24 +269,21 @@ type SpellAuraRemovedDose struct {
 
 // SPELL_AURA_DISPELLED
 type SpellAuraDispelled struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 	Dispelled Spell
 }
 
 // SPELL_AURA_STOLEN
 type SpellAuraStolen struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 	Stolen Spell
 }
 
 // SPELL_STOLEN
 type SpellStolen struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 	Stolen Spell
 	Aura
@@ -316,40 +307,35 @@ type EnchantRemoved struct {
 
 // SPELL_PERIODIC_MISSED
 type SpellPeriodicMissed struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 	Miss
 }
 
 // SPELL_PERIODIC_DAMAGE
 type SpellPeriodicDamage struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 	Damage
 }
 
 // SPELL_PERIODIC_HEAL
 type SpellPeriodicHeal struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 	Heal
 }
 
 // SPELL_PERIODIC_ENERGIZE
 type SpellPeriodicEnergize struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 	Power
 }
 
 // SPELL_PERIODIC_DRAIN
 type SpellPeriodicDrain struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 	Power
 	Drained int64
@@ -357,8 +343,7 @@ type SpellPeriodicDrain struct {
 
 // SPELL_PERIODIC_LEECH
 type SpellPeriodicLeech struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 	Power
 	Leeched int64
@@ -366,54 +351,47 @@ type SpellPeriodicLeech struct {
 
 // SPELL_DISPEL_FAILED
 type SpellDispelFailed struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 	Power
 }
 
 // DAMAGE_SHIELD
 type DamageShield struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 	Damage
 }
 
 // DAMAGE_SHIELD_MISSED
 type DamageShieldMissed struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 	Miss
 }
 
 // DAMAGE_SPLIT
 type DamageSplit struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 	Damage
 }
 
 // SPELL_SUMMON
 type SpellSummon struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 }
 
 // SPELL_RESURRECT
 type SpellResurrect struct {
-	Source Unit
-	Dest   Unit
+	Common
 	Spell
 }
 
 // SPELL_CREATE
 type SpellCreate struct {
-	Source Unit
-	Dest Unit
+	Common
 	Spell
 }
 

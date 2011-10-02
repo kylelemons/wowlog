@@ -14,7 +14,7 @@ import (
 
 const (
 	TimeStampFormat = "1/2 15:04:05.000"
-	TimeStampPrefix = 10
+	TimeStampPrefix = 11
 	StartOfEvent    = len(TimeStampFormat)+2
 	ReadBufferSize  = 4 * 1024 * 1024 // 4MB
 )
@@ -78,13 +78,14 @@ func Read(r io.Reader) (events CombatLog, err os.Error) {
 			continue
 		}
 
-		// Split the line into pieces
+		// Figure out where the event starts
 		start := len(TimeStampFormat) + strings.IndexFunc(lstr[len(TimeStampFormat):], start_of_event)
 		if start < 0 {
 			fmt.Printf("combatlog: malformatted line: %q\n", lstr)
 			continue
 		}
 
+		// Cache the 
 		var etime *time.Time
 		stamp := strings.TrimSpace(lstr[:start])
 		if lastStamp[:TimeStampPrefix] != stamp[:TimeStampPrefix] {
@@ -94,6 +95,13 @@ func Read(r io.Reader) (events CombatLog, err os.Error) {
 			}
 		} else {
 			etime = lastTime
+			sec, err := strconv.Atof64(stamp[TimeStampPrefix:])
+			if err != nil {
+				return nil, fmt.Errorf("combatlog: bad timestamp %q: %s", stamp, err)
+			}
+			isec := float64(int(sec))
+			etime.Second = int(isec)
+			etime.Nanosecond = int(sec-isec*1e9)
 		}
 
 		lastTime = etime

@@ -2,9 +2,10 @@ include $(GOROOT)/src/Make.inc
 
 GC := $(GC) ${GCOPTS}
 
-TARG=wow/combatlog
+TARG=github.com/kylelemons/wowlog/combatlog
 GOFILES=\
-	parser.go\
+	analysis.go\
 	combatlog.go\
+	parser.go\
 
 include $(GOROOT)/src/Make.pkg
