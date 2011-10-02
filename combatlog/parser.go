@@ -20,7 +20,7 @@ const (
 )
 
 type Event struct {
-	Time *time.Time
+	Time time.Time
 	Name string
 	Data interface{}
 }
@@ -95,13 +95,20 @@ func Read(r io.Reader) (events CombatLog, err os.Error) {
 			}
 		} else {
 			etime = lastTime
-			sec, err := strconv.Atof64(stamp[TimeStampPrefix:])
+			suffix := stamp[TimeStampPrefix:]
+			if len(suffix) != 6 {
+				return nil, fmt.Errorf("combatlog: bad timestamp %q: invalid ss.mmm", stamp, err)
+			}
+			sufSec, sufMsec := suffix[:2], suffix[3:]
+			sec, err := strconv.Atoi(sufSec)
 			if err != nil {
 				return nil, fmt.Errorf("combatlog: bad timestamp %q: %s", stamp, err)
 			}
-			isec := float64(int(sec))
-			etime.Second = int(isec)
-			etime.Nanosecond = int(sec-isec*1e9)
+			msec, err := strconv.Atoi(sufMsec)
+			if err != nil {
+				return nil, fmt.Errorf("combatlog: bad timestamp %q: %s", stamp, err)
+			}
+			etime.Second, etime.Nanosecond = sec, msec*1e6
 		}
 
 		lastTime = etime
@@ -126,7 +133,7 @@ func Read(r io.Reader) (events CombatLog, err os.Error) {
 		}
 
 		event := Event{
-			Time: etime,
+			Time: *etime,
 			Name: name,
 			Data: data,
 		}
@@ -145,11 +152,12 @@ type field interface {
 type eventFactory struct {
 	fields   []field
 	min, max int
-	emptyptr interface{}
+	emptyPtr interface{}
+	emptyTyp reflect.Type
 }
 
 func (e eventFactory) String() string {
-	return fmt.Sprintf("%T%v", e.emptyptr, e.fields)
+	return fmt.Sprintf("%T%v", e.emptyPtr, e.fields)
 }
 
 func (e eventFactory) create(csv string) (event interface{}, err os.Error) {
@@ -171,7 +179,7 @@ func (e eventFactory) create(csv string) (event interface{}, err os.Error) {
 
 		if err := field.parse(fstr); err != nil {
 			return nil, fmt.Errorf("combatlog: failed to parse %q as %T for %T[%d]: %s",
-				fstr, field, e.emptyptr, i, err)
+				fstr, field, e.emptyPtr, i, err)
 		}
 
 		parsed++
@@ -187,7 +195,10 @@ func (e eventFactory) create(csv string) (event interface{}, err os.Error) {
 		e.fields[i].zero()
 	}
 
-	return reflect.ValueOf(e.emptyptr).Elem().Interface(), nil
+	copied := reflect.New(e.emptyTyp).Elem()
+	copied.Set(reflect.ValueOf(e.emptyPtr).Elem())
+
+	return copied.Interface(), nil
 }
 
 type fieldInt32 struct{ ptr *int32 }
@@ -270,8 +281,9 @@ func compile(empty interface{}) (comp eventFactory) {
 	if val.Kind() != reflect.Ptr || val.Elem().Kind() != reflect.Struct {
 		panic("combatlog: compile: cannot compile a non-pointer-to-struct value")
 	}
-	comp.emptyptr = val.Interface()
+	comp.emptyPtr = val.Interface()
 	val = val.Elem()
+	comp.emptyTyp = val.Type()
 
 	optional := false
 

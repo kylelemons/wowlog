@@ -7,5 +7,6 @@ GOFILES=\
 	analysis.go\
 	combatlog.go\
 	parser.go\
+	constants.go\
 
 include $(GOROOT)/src/Make.pkg

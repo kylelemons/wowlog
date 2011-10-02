@@ -3,17 +3,21 @@ package combatlog
 type Unit struct {
 	ID    uint64
 	Name  string
-	Flags uint64
-	Null  int32
+	Flags UnitFlags
+	Flag2 int32
 }
 
 type Common struct {
 	Source Unit
 	Dest   Unit
 }
+
+// GetSource returns the source or instigator of the event.
 func (c Common) GetSource() Unit {
 	return c.Source
 }
+
+// GetDest returns the destination or victim of the event.
 func (c Common) GetDest() Unit {
 	return c.Dest
 }
@@ -21,7 +25,7 @@ func (c Common) GetDest() Unit {
 type Spell struct {
 	ID     uint64
 	Name   string
-	School int32
+	School SpellSchool
 }
 func (s Spell) GetSpell() Spell {
 	return s
@@ -29,7 +33,7 @@ func (s Spell) GetSpell() Spell {
 
 type Damage struct {
 	Amount   int64
-	Unknown  int32
+	Overkill int32
 	School   int32
 	Resisted int64
 	Blocked  int64
@@ -45,7 +49,7 @@ func (d Damage) GetDamage() Damage {
 type Heal struct {
 	Amount   int64
 	Overheal int64
-	Unknown  int64
+	Absorbed int64
 	Critical bool
 }
 func (h Heal) GetHeal() Heal {
@@ -70,7 +74,7 @@ type Aura struct {
 
 type Power struct {
 	Amount int64
-	Type   int32
+	Type   PowerType
 }
 
 type Item struct {
@@ -237,8 +241,7 @@ type SpellAuraRefresh struct {
 
 // SPELL_AURA_BROKEN_SPELL
 type SpellAuraBrokenSpell struct {
-	Source  Unit
-	Dest    Unit
+	Common
 	Broken  Spell
 	Breaker Spell
 	Aura
@@ -291,16 +294,14 @@ type SpellStolen struct {
 
 // ENCHANT_APPLIED	
 type EnchantApplied struct {
-	Source  Unit
-	Dest    Unit
+	Common
 	Enchant string
 	Item
 }
 
 // ENCHANT_REMOVED	
 type EnchantRemoved struct {
-	Source  Unit
-	Dest    Unit
+	Common
 	Enchant string
 	Item
 }
@@ -397,20 +398,17 @@ type SpellCreate struct {
 
 // PARTY_KILL		
 type PartyKill struct {
-	Killer Unit
-	Victim Unit
+	Common
 }
 
 // UNIT_DIED		
 type UnitDied struct {
-	Victim Unit
-	Empty  Unit
+	Common
 }
 
 // UNIT_DESTROYED		
 type UnitDestroyed struct {
-	Victim Unit
-	Empty  Unit
+	Common
 }
 
 var eventTypes = map[string]eventFactory{

@@ -9,20 +9,20 @@ import (
 var testCombatLog = CombatLog{
 
 	// 0..4                                              10..14
-	Event{ Time: &time.Time{ Year: 2011, Minute: 1, Second: 10 }, },
-	Event{ Time: &time.Time{ Year: 2011, Minute: 1, Second: 11 }, },
-	Event{ Time: &time.Time{ Year: 2011, Minute: 1, Second: 12 }, },
+	Event{ Time: time.Time{ Year: 2011, Minute: 1, Second: 10 }, },
+	Event{ Time: time.Time{ Year: 2011, Minute: 1, Second: 11 }, },
+	Event{ Time: time.Time{ Year: 2011, Minute: 1, Second: 12 }, },
 	// 3..5                                              13..17
-	Event{ Time: &time.Time{ Year: 2011, Minute: 1, Second: 13 }, },
-	Event{ Time: &time.Time{ Year: 2011, Minute: 1, Second: 14 }, },
-	Event{ Time: &time.Time{ Year: 2011, Minute: 1, Second: 15 }, },
+	Event{ Time: time.Time{ Year: 2011, Minute: 1, Second: 13 }, },
+	Event{ Time: time.Time{ Year: 2011, Minute: 1, Second: 14 }, },
+	Event{ Time: time.Time{ Year: 2011, Minute: 1, Second: 15 }, },
 	// 6..6                                              16..20
-	Event{ Time: &time.Time{ Year: 2011, Minute: 1, Second: 17 }, },
+	Event{ Time: time.Time{ Year: 2011, Minute: 1, Second: 17 }, },
 	// 7..7                                              19..23
-	Event{ Time: &time.Time{ Year: 2011, Minute: 1, Second: 20 }, },
+	Event{ Time: time.Time{ Year: 2011, Minute: 1, Second: 20 }, },
 	// 8..8                                              22..26
 	// 8..8                                              25..29
-	Event{ Time: &time.Time{ Year: 2011, Minute: 1, Second: 25 }, },
+	Event{ Time: time.Time{ Year: 2011, Minute: 1, Second: 25 }, },
 	//                                                   28..32
 	//                                                   31..35
 	//                                                   34..38
@@ -33,16 +33,16 @@ var testCombatLog = CombatLog{
 	//                                                   49..53
 	// 9..10                                             52..56
 	// 9..13                                            55..59
-	Event{ Time: &time.Time{ Year: 2011, Minute: 1, Second: 55 }, },
-	Event{ Time: &time.Time{ Year: 2011, Minute: 1, Second: 56 }, },
-	Event{ Time: &time.Time{ Year: 2011, Minute: 1, Second: 57 }, },
+	Event{ Time: time.Time{ Year: 2011, Minute: 1, Second: 55 }, },
+	Event{ Time: time.Time{ Year: 2011, Minute: 1, Second: 56 }, },
+	Event{ Time: time.Time{ Year: 2011, Minute: 1, Second: 57 }, },
 	// 12..17                                            58..62
-	Event{ Time: &time.Time{ Year: 2011, Minute: 1, Second: 58 }, },
-	Event{ Time: &time.Time{ Year: 2011, Minute: 1, Second: 59 }, },
-	Event{ Time: &time.Time{ Year: 2011, Minute: 2, Second: 00 }, },
+	Event{ Time: time.Time{ Year: 2011, Minute: 1, Second: 58 }, },
+	Event{ Time: time.Time{ Year: 2011, Minute: 1, Second: 59 }, },
+	Event{ Time: time.Time{ Year: 2011, Minute: 2, Second: 00 }, },
 	// 15..17                                            01..05
-	Event{ Time: &time.Time{ Year: 2011, Minute: 2, Second: 01 }, },
-	Event{ Time: &time.Time{ Year: 2011, Minute: 2, Second: 02 }, },
+	Event{ Time: time.Time{ Year: 2011, Minute: 2, Second: 01 }, },
+	Event{ Time: time.Time{ Year: 2011, Minute: 2, Second: 02 }, },
 }
 
 var windowTests = []struct {
