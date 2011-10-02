@@ -14,7 +14,7 @@ import (
 
 const (
 	TimeStampFormat = "1/2 15:04:05.000"
-	ReadBufferSize  = 4*1024*1024 // 4MB
+	ReadBufferSize  = 4 * 1024 * 1024 // 4MB
 )
 
 type Event struct {
@@ -31,14 +31,16 @@ func ReadFile(filename string) (CombatLog, os.Error) {
 	if err != nil {
 		return nil, err
 	}
-	//return Read(file)
-	cl, err := Read(file)
-	buf := new(bytes.Buffer)
-	if err := gob.NewEncoder(buf).Encode(cl); err != nil {
-		return nil, err
-	}
-	fmt.Println("%s: encodes to %d bytes", buf.Len())
-	return cl, err
+	return Read(file)
+	/*
+		cl, err := Read(file)
+		buf := new(bytes.Buffer)
+		if err := gob.NewEncoder(buf).Encode(cl); err != nil {
+			return nil, err
+		}
+		fmt.Println("%s: encodes to %d bytes", buf.Len())
+		return cl, err
+	*/
 }
 
 func start_of_event(rune int) bool { return rune >= '@' }
@@ -63,19 +65,19 @@ func Read(r io.Reader) (events CombatLog, err os.Error) {
 		// Finish the line if it's super long
 		if isPrefix {
 			/*
-			full := make([]byte, 0, len(line))
-			full = append(full, line...)
-			for isPrefix {
-				line, isPrefix, err = lines.ReadLine()
-				if err == os.EOF {
-					break
-				}
-				if err != nil {
-					return nil, err
-				}
+				full := make([]byte, 0, len(line))
 				full = append(full, line...)
-			}
-			line = full
+				for isPrefix {
+					line, isPrefix, err = lines.ReadLine()
+					if err == os.EOF {
+						break
+					}
+					if err != nil {
+						return nil, err
+					}
+					full = append(full, line...)
+				}
+				line = full
 			*/
 			return nil, fmt.Errorf("combatlog: long line: %q\n", line)
 		}
@@ -126,27 +128,30 @@ func Read(r io.Reader) (events CombatLog, err os.Error) {
 	return events, nil
 }
 
-type eventField struct {
-	index        []int
-	reflect.Kind
+type field interface {
+	parse(string) os.Error
+	zero()
 }
 
 type eventFactory struct {
-	fields   []eventField
+	fields   []field
 	min, max int
-	reflect.Type
+	emptyptr interface{}
 }
 
 func (e eventFactory) String() string {
-	return fmt.Sprintf("%s%v", e.Type, e.fields)
+	return fmt.Sprintf("%T%v", e.emptyptr, e.fields)
 }
 
-func (e eventFactory) create(csv []byte) (interface{}, os.Error) {
+func (e eventFactory) create(csv []byte) (event interface{}, err os.Error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panic: %s", r)
+		}
+	}()
+
 	start := 0
 	parsed := 0
-
-	val := reflect.New(e.Type)
-	elem := val.Elem()
 
 	for i, field := range e.fields {
 		if start >= len(csv) {
@@ -155,10 +160,9 @@ func (e eventFactory) create(csv []byte) (interface{}, os.Error) {
 		comma := nextField(csv[start:])
 		fstr := string(csv[start:][:comma])
 
-		fval := elem.FieldByIndex(field.index)
-		if err := parseField(fval, field.Kind, fstr); err != nil {
-			return nil, fmt.Errorf("combatlog: failed to parse %q as %s for %s[%d]: %s",
-				fstr, field.Kind, e.Type, i, err)
+		if err := field.parse(fstr); err != nil {
+			return nil, fmt.Errorf("combatlog: failed to parse %q as %T for %T[%d]: %s",
+				fstr, field, e.emptyptr, i, err)
 		}
 
 		parsed++
@@ -170,87 +174,135 @@ func (e eventFactory) create(csv []byte) (interface{}, os.Error) {
 			parsed, e.min, e.max, e, string(csv))
 	}
 
-	return val.Interface(), nil
+	for i := parsed; i < e.max; i++ {
+		e.fields[i].zero()
+	}
+
+	return reflect.ValueOf(e.emptyptr).Elem().Interface(), nil
 }
 
-func parseField(val reflect.Value, kind reflect.Kind, fstr string) (err os.Error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("panic: %s", r)
-		}
-	}()
+type fieldInt32 struct{ ptr *int32 }
 
-	switch kind {
-	case reflect.Int64, reflect.Int32:
-		i, err := strconv.Btoi64(fstr, 0)
-		if err != nil {
-			return err
-		}
-		val.SetInt(i)
-	case reflect.Uint64, reflect.Uint32:
-		u, err := strconv.Btoui64(fstr, 0)
-		if err != nil {
-			return err
-		}
-		val.SetUint(u)
-	case reflect.String:
-		if fstr[0] == '"' {
-			if fstr, err = strconv.Unquote(fstr); err != nil {
-				return err
-			}
-		}
-		val.SetString(fstr)
-	case reflect.Bool:
-		switch fstr {
-		case "nil":
-			val.SetBool(false)
-		case "1":
-			val.SetBool(true)
-		default:
-			return fmt.Errorf("invalid bool: %q", fstr)
-		}
-	default:
-		return fmt.Errorf("unknown kind %s", kind)
+func (f fieldInt32) zero() {
+	*f.ptr = 0
+}
+func (f fieldInt32) parse(fstr string) os.Error {
+	i, err := strconv.Btoi64(fstr, 0)
+	*f.ptr = int32(i)
+	return err
+}
+
+type fieldInt64 struct{ ptr *int64 }
+
+func (f fieldInt64) zero() {
+	*f.ptr = 0
+}
+func (f fieldInt64) parse(fstr string) (err os.Error) {
+	*f.ptr, err = strconv.Btoi64(fstr, 0)
+	return err
+}
+
+type fieldUint32 struct{ ptr *uint32 }
+
+func (f fieldUint32) zero() {
+	*f.ptr = 0
+}
+func (f fieldUint32) parse(fstr string) os.Error {
+	i, err := strconv.Btoui64(fstr, 0)
+	*f.ptr = uint32(i)
+	return err
+}
+
+type fieldUint64 struct{ ptr *uint64 }
+
+func (f fieldUint64) zero() {
+	*f.ptr = 0
+}
+func (f fieldUint64) parse(fstr string) (err os.Error) {
+	*f.ptr, err = strconv.Btoui64(fstr, 0)
+	return err
+}
+
+type fieldString struct{ ptr *string }
+
+func (f fieldString) zero() {
+	*f.ptr = ""
+}
+func (f fieldString) parse(fstr string) (err os.Error) {
+	if fstr[0] == '"' {
+		*f.ptr, err = strconv.Unquote(fstr)
+	} else {
+		*f.ptr = fstr
 	}
-	return nil
+	return err
+}
+
+type fieldBool struct{ ptr *bool }
+
+func (f fieldBool) zero() {
+	*f.ptr = false
+}
+func (f fieldBool) parse(fstr string) (err os.Error) {
+	switch fstr {
+	case "nil":
+		*f.ptr = false
+	case "1":
+		*f.ptr = true
+	default:
+		err = fmt.Errorf("invalid bool: %q", fstr)
+	}
+	return err
 }
 
 func compile(empty interface{}) (comp eventFactory) {
 	gob.Register(empty)
 
-	eventType := reflect.TypeOf(empty)
-	for eventType.Kind() == reflect.Ptr {
-		eventType = eventType.Elem()
+	val := reflect.ValueOf(empty)
+	if val.Kind() != reflect.Ptr || val.Elem().Kind() != reflect.Struct {
+		panic("combatlog: compile: cannot compile a non-pointer-to-struct value")
 	}
-	comp.Type = eventType
+	comp.emptyptr = val.Interface()
+	val = val.Elem()
 
 	optional := false
 
-	var next func([]int, reflect.Type)
-	next = func(curr []int, t reflect.Type) {
-		for i, n := 0, t.NumField(); i < n; i++ {
+	var next func([]int, reflect.Value)
+	next = func(curr []int, val reflect.Value) {
+		typ := val.Type()
+
+		for i, n := 0, val.NumField(); i < n; i++ {
 			// Get the recursive index
 			idx := make([]int, len(curr)+1)
 			idx[copy(idx, curr)] = i
 
-			ft := t.Field(i)
-			if ft.Tag.Get("combatlog") == "optional" {
+			fval := val.Field(i)
+			ftyp := typ.Field(i)
+			if ftyp.Tag.Get("combatlog") == "optional" {
 				optional = true
 			}
 
-			if fk := ft.Type.Kind(); fk == reflect.Struct {
-				next(idx, ft.Type)
-			} else {
+			var curField field
+			switch ftyp.Type.Kind() {
+			case reflect.Struct: next(idx, fval)
+			case reflect.Int32:  curField = fieldInt32{fval.Addr().Interface().(*int32)}
+			case reflect.Int64:  curField = fieldInt64{fval.Addr().Interface().(*int64)}
+			case reflect.Uint32: curField = fieldUint32{fval.Addr().Interface().(*uint32)}
+			case reflect.Uint64: curField = fieldUint64{fval.Addr().Interface().(*uint64)}
+			case reflect.Bool:   curField = fieldBool{fval.Addr().Interface().(*bool)}
+			case reflect.String: curField = fieldString{fval.Addr().Interface().(*string)}
+			default:             panic("cannot compile field of type "+ftyp.Type.Kind().String())
+			}
+			if curField != nil {
 				if !optional {
 					comp.min++
 				}
 				comp.max++
-				comp.fields = append(comp.fields, eventField{idx,fk})
+				comp.fields = append(comp.fields, curField)
 			}
 		}
 	}
 
-	next(nil, eventType)
+	next(nil, val)
 	return comp
 }
 
@@ -267,7 +319,7 @@ func nextField(csv []byte) int {
 				switch csv[i] {
 				case '\\':
 					i++
-				case '"' :
+				case '"':
 					break closeQuote
 				}
 			}
