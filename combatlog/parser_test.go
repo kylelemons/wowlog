@@ -42,7 +42,7 @@ var nextFieldTests = []struct{
 
 func TestNextField(t *testing.T) {
 	for _, test := range nextFieldTests {
-		if got, want := nextField([]byte(test.Source)), test.Comma; got != want {
+		if got, want := nextField(test.Source), test.Comma; got != want {
 			t.Errorf("nextField(%#q) = %d, want %d", test.Source, got, want)
 		}
 	}

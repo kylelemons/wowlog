@@ -2,18 +2,20 @@ package combatlog
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"gob"
 	"io"
 	"os"
 	"reflect"
+	"strings"
 	"strconv"
 	"time"
 )
 
 const (
 	TimeStampFormat = "1/2 15:04:05.000"
+	TimeStampPrefix = 10
+	StartOfEvent    = len(TimeStampFormat)+2
 	ReadBufferSize  = 4 * 1024 * 1024 // 4MB
 )
 
@@ -25,7 +27,6 @@ type Event struct {
 
 type CombatLog []Event
 
-// filename leaks
 func ReadFile(filename string) (CombatLog, os.Error) {
 	file, err := os.Open(filename)
 	if err != nil {
@@ -43,14 +44,18 @@ func ReadFile(filename string) (CombatLog, os.Error) {
 	*/
 }
 
-func start_of_event(rune int) bool { return rune >= '@' }
+func start_of_event(rune int) bool {
+	return rune >= '@'
+}
 
-// r leaks
 func Read(r io.Reader) (events CombatLog, err os.Error) {
 	lines, err := bufio.NewReaderSize(r, ReadBufferSize)
 	if err != nil {
 		return nil, err
 	}
+
+	var lastTime *time.Time
+	var lastStamp = ".................."
 
 	for {
 		// Read the next line
@@ -61,51 +66,47 @@ func Read(r io.Reader) (events CombatLog, err os.Error) {
 		if err != nil {
 			return nil, err
 		}
+		lstr := string(line)
 
-		// Finish the line if it's super long
+		// error if it's super long
 		if isPrefix {
-			/*
-				full := make([]byte, 0, len(line))
-				full = append(full, line...)
-				for isPrefix {
-					line, isPrefix, err = lines.ReadLine()
-					if err == os.EOF {
-						break
-					}
-					if err != nil {
-						return nil, err
-					}
-					full = append(full, line...)
-				}
-				line = full
-			*/
 			return nil, fmt.Errorf("combatlog: long line: %q\n", line)
 		}
 
 		// Skip the line if it's blank
-		line = bytes.TrimSpace(line)
-		if len(line) == 0 {
+		if len(lstr) == 0 {
 			continue
 		}
 
 		// Split the line into pieces
-		start := bytes.IndexFunc(line, start_of_event)
+		start := len(TimeStampFormat) + strings.IndexFunc(lstr[len(TimeStampFormat):], start_of_event)
 		if start < 0 {
-			fmt.Printf("combatlog: malformatted line: %q\n", line)
+			fmt.Printf("combatlog: malformatted line: %q\n", lstr)
 			continue
 		}
 
-		stamp := string(bytes.TrimSpace(line[:start]))
-		time, err := time.Parse(TimeStampFormat, stamp)
+		var etime *time.Time
+		stamp := strings.TrimSpace(lstr[:start])
+		if lastStamp[:TimeStampPrefix] != stamp[:TimeStampPrefix] {
+			etime, err = time.Parse(TimeStampFormat, stamp)
+			if err != nil {
+				return nil, fmt.Errorf("combatlog: bad timestamp %q: %s", stamp, err)
+			}
+		} else {
+			etime = lastTime
+		}
 
-		csv := line[start:]
-		comma := bytes.IndexByte(csv, ',')
+		lastTime = etime
+		lastStamp = stamp
+
+		csv := lstr[start:]
+		comma := strings.IndexRune(csv, ',')
 		if comma < 0 {
-			fmt.Printf("combatlog: malformatted line: %q\n", line)
+			fmt.Printf("combatlog: malformatted line: %q\n", lstr)
 			continue
 		}
 
-		name, csv := string(csv[:comma]), csv[comma+1:]
+		name, csv := csv[:comma], csv[comma+1:]
 		factory, ok := eventTypes[name]
 		if !ok {
 			return nil, fmt.Errorf("combatlog: unknown event type %q", name)
@@ -117,7 +118,7 @@ func Read(r io.Reader) (events CombatLog, err os.Error) {
 		}
 
 		event := Event{
-			Time: time,
+			Time: etime,
 			Name: name,
 			Data: data,
 		}
@@ -143,7 +144,7 @@ func (e eventFactory) String() string {
 	return fmt.Sprintf("%T%v", e.emptyptr, e.fields)
 }
 
-func (e eventFactory) create(csv []byte) (event interface{}, err os.Error) {
+func (e eventFactory) create(csv string) (event interface{}, err os.Error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("panic: %s", r)
@@ -306,7 +307,7 @@ func compile(empty interface{}) (comp eventFactory) {
 	return comp
 }
 
-func nextField(csv []byte) int {
+func nextField(csv string) int {
 	for i, n := 0, len(csv); i < n; i++ {
 		switch csv[i] {
 		case ',':
